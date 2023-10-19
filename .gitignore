@@ -2,3 +2,5 @@ PThreads.vcxproj
 PThreads.vcxproj.filters
 PThreads.vcxproj.user
 x64
+/cmake-build-debug/
+/CMakeLists.txt
