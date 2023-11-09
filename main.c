@@ -3,24 +3,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "matriz.h"
 
-#define H_MATRIZ 10
-#define W_MATRIZ 10
+#define H_MATRIZ 24000
+#define W_MATRIZ 24000
 
 #define SEED_RAND 22
-#define MAX_RAND 100
+#define MAX_RAND 31999
 
-#define NUM_THREADS 2
+#define NUM_THREADS 6
 
-#define H_MACROBLOCO 5;
-#define W_MACROBLOCO 5;
+#define H_MACROBLOCO 24;
+#define W_MACROBLOCO 24;
 
 // Variaveis globais
 int totalPrimos = 0;
 int **mat;
 pthread_mutex_t regiaoCritica1;
 pthread_mutex_t regiaoCritica2;
+
 int linha = 0;
 int coluna = 0;
 
@@ -106,36 +106,44 @@ int contaPrimos(int linhaInicial, int colunaInicial) {
 
 void* buscaParalela(void* nenhum) {
     int soma = 0;
+    int i = 0;
+    int j = 0;
 
-    // a logica do while ta errada
     while(linha < H_MATRIZ && coluna < W_MATRIZ) {
 
-        soma += contaPrimos(linha, coluna);
+        pthread_mutex_lock(&regiaoCritica1);
+        // define a linha inicial e a coluna inicial do macrobloco
+        i = linha;
+        j = coluna;
 
-        //pthread_mutex_lock(&regiaoCritica1);
-        linha += H_MACROBLOCO;
         coluna += W_MACROBLOCO;
-        //thread_mutex_unlock(&regiaoCritica1);
 
+        // verifica se já chegou à última coluna do macrobloco
+        if(coluna == W_MATRIZ && i < H_MATRIZ) {
+            linha += H_MACROBLOCO;
+            coluna = 0;
+        }
+        pthread_mutex_unlock(&regiaoCritica1);
+
+        int resultado = contaPrimos(i, j);
+        soma += resultado;
+        //printf("\n\nLINHA: %d\nCOLUNA: %d\nRESULTADO: %d\nSOMA: %d", i, j, resultado, soma);
     }
 
     pthread_mutex_lock(&regiaoCritica2);
     totalPrimos += soma;
     pthread_mutex_unlock(&regiaoCritica2);
+
 }
 
 int main(int argc, char *argv[]) {
     clock_t tempInicial, tempFinal;
-    double tempTotal;
     mat = criaMatriz();
-
-    //imprimeMatriz(mat);
 
     // Busca Serial
     tempInicial = clock();
     totalPrimos += buscaSerial(mat);
     tempFinal = clock();
-    //imprimeMatriz(mat);
     printf("\nBUSCA SERIAL \nQtd de primos: %d \nTEMPO TOTAL: %f s", totalPrimos, tempoExecucao(tempInicial, tempFinal));
 
     // zera a contagem
